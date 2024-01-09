@@ -1,11 +1,10 @@
-const express = require('express')
+const express = require('express');
+const rotas = require('./rotas');
 const app = express()
 
 app.use(express.json());
+app.use(rotas)
 
-app.get('/', (req,res)=>{
-    return res.json('API ok')
-})
 
 app.listen(8080, ()=>{
     console.log('API rodando na porta 8080');

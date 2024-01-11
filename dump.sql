@@ -14,7 +14,7 @@ CREATE TABLE projetos(
 	id serial primary key,
   name VARCHAR(200),
   budget integer,
-  costs_id integer references costs(id),
+  cost integer default 0,
   categories_id integer references categories(id)
 )
 

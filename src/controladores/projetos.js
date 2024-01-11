@@ -1,42 +1,69 @@
+const { json } = require("express")
 const knex = require("../conexaoDB")
 
 const projetos = async (req,res)=>{
-    /*
-        select p.id, p.name, p.budget, c.costs, cat.id, cat.name 
-        from projetos p join costs c on costs_id = c.id 
-        join categories cat on categories_id = cat.id;
-    */
+    
     try {
+        
         const projetos = await knex('projetos')
-            .join('costs', 'costs_id', '=', 'costs.id')
-            .join('categories', 'categories_id', '=', 'categories.id')
-            // .join('servicos', function(){
-            //     this
-            //     .on('projetos_id', '=','projetos.id')
-            // })
-            .select('projetos.id', 'projetos.name', 'projetos.budget', 
-                'costs.costs', 'categories.id as categoria_id', 'categories.name',/*'servicos.name as nome_servico'*/)
-            .debug()
-
+            .leftJoin('servicos', 'projetos_id', '=', 'projetos.id')
+            .leftJoin('categories', 'categories.id', '=', 'projetos.categories_id') // Corrigindo a junção com a tabela de categorias
+            .select(
+                'projetos.id as id',
+                'projetos.*',
+                'servicos.id as servicos_id',
+                'servicos.name as servicos_name',
+                'servicos.description as description_servico',
+                'servicos.cost as cost_servico',
+                'categories.id as categoria_id',
+                'categories.name as categoria_name',
+            )
+            .orderBy('projetos.id')
+            .groupBy('projetos.id', 'servicos.id', 'categoria_id', 'categoria_name');
         
-        const resultado = projetos.map((element)=>{
-            return {
-                id: element.id,
-                budget: element.budget,
-                categories: {
-                    id: element.categoria_id,
-                    name: element.name
-                },
-                costs: element.costs,
-                servicos: !element.servicos ? [] : element.servicos,
-            }
-        })
-
         if(projetos.length === 0){
-            return res.status(404).json({mensagem: 'Não há projetos cadastrados.'})
+            return res.status(400).json({menssagem: 'Nenhum projeto cadastrado'})
         }
-        return res.json(resultado)
         
+        // Agrupar os resultados pelo ID do projeto
+        const projetosAgrupados = projetos.reduce((acc, projeto) => {
+            const projetoExistente = acc.find((p) => p.id === projeto.id);
+
+            if (projetoExistente) {
+                // Adicionar serviço ao projeto existente
+                projetoExistente.servicos.push({
+                    id: projeto.servicos_id,
+                    name: projeto.servicos_name,
+                    cost: projeto.cost_servico,
+                    description: projeto.description_servico
+                });
+            } else {
+                // Criar novo projeto com um array de serviços
+                acc.push({
+                    id: projeto.id,
+                    name: projeto.name,
+                    budget: projeto.budget,
+                    categories: {
+                        id: projeto.categoria_id,
+                        name: projeto.categoria_name
+                    },
+                    costs: projeto.cost,
+                    servicos: projeto.cost === 0 ? [] : [{
+                        id: projeto.servicos_id,
+                        name: projeto.servicos_name,
+                        cost: projeto.cost_servico,
+                        description: projeto.description_servico
+                    }],
+                });
+            }
+
+            return acc;
+        }, []);
+
+        return res.json(projetosAgrupados);
+
+
+
     } catch (error) {
         console.log(error)
         return res.status(500).json({menssagem: 'Erro interno do servidor'})
@@ -71,11 +98,10 @@ const novoProjeto = async (req,res)=>{
 
 
         //inserir no bd
-        const costs_id = await knex('costs').insert({costs: 0}).returning('id')
+        
         const projeto = await knex('projetos').insert({
             name, 
             budget, 
-            costs_id: costs_id[0].id, 
             categories_id: id_categoria
         })
 
@@ -99,7 +125,31 @@ const removerProjeto = async (req,res)=>{
         if(!existeProjeto){
             return res.status(400).json({menssagem: 'projeto não encontrado'})
         }
+
+        const existeServico = await knex('servicos').where({projetos_id: id})
         
+        if(existeServico.length === 0){
+            //deletar projeto
+            await knex('projetos')
+                .where({id})
+                .delete()
+    
+            return res.status(200).json({menssagem: 'Projeto removido com sucesso'})
+        }
+        
+        const projeto = await knex('projetos')
+            .where({id: id})
+            .first()
+        
+        
+        
+        // deletar servico
+        await knex('servicos')
+            .where({projetos_id: id})
+            .delete()
+            .returning('*')
+        
+        //deletar projeto
         await knex('projetos')
             .where({id})
             .delete()
@@ -126,18 +176,19 @@ const adicionarServico = async (req,res)=>{
             return res.status(400).json({menssagem: 'projeto não encontrado'})
         }
 
-        const {budget, costs_id} = await knex('projetos')
+        const {budget: budgetAtual, cost: costAtual} = await knex('projetos')
             .where({id})
-            .select('budget', 'costs_id')
+            .select('budget', 'cost')
             .first()
 
-        const {costs: costAtual} = await knex('costs').where({id: costs_id}).first()
+        console.log('budget atual: ', budgetAtual);
+        console.log('cost atual: ', costAtual);
         
-        if(cost > budget){
+        if(cost > budgetAtual){
             return res.status(400).json({menssagem: 'Orçamento inválido, verifique o valor do serviço'})
         }
         
-        if((costAtual + cost) > budget){
+        if((costAtual + cost) > budgetAtual){
             return res.status(400).json({menssagem: 'Verifique o orçamento do projeto, custo ultrapassa o orçamento!'})
 
         }
@@ -151,14 +202,58 @@ const adicionarServico = async (req,res)=>{
             
 
         await knex('projetos')
-            .update({budget: budget - cost })
+            .update({budget: budgetAtual - cost, cost: costAtual + cost })
             .where({id})
+            .debug()
 
-        await knex('costs')
-            .update({costs: costAtual + cost })
-            .where({id: costs_id})
+        return res.json({menssagem: 'Serviço adicionado'})
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({menssagem: 'Erro interno do servidor'})
+    }
+}
 
-        return res.json({menssagem: 'Serviço adicionado com sucesso'})
+const editarProjeto = async (req,res)=>{
+    const id = Number(req.params.id)
+    const { name: novoName, categories_id: novaCategoria} = req.body
+    const novoBudget = Number(req.body.budget)
+    try {
+        if(isNaN(id)){
+            return res.status(400).json({menssagem: 'id inválido'})
+        }
+        if(novoBudget){
+            if(isNaN(novoBudget)){
+                return res.status(400).json({menssagem: 'Orçamento inválido'})
+            }
+        }
+        const existeProjeto = await knex('projetos').where({id}).first()
+        
+        if(!existeProjeto){
+            return res.status(400).json({menssagem: 'Projeto não encontrado'})
+        }
+        const {
+            name, budget, cost, categoria_id
+            
+        } = await knex('projetos')
+            .join('categories', 'categories_id', '=', 'categories.id')
+            .select('projetos.id', 'projetos.name', 'projetos.budget', 'projetos.cost', 
+                'categories.id as categoria_id', 'categories.name as categoria_name')
+            .where('projetos.id', '=', id)
+            .first()
+            
+            if(novoBudget < cost){
+                return res.status(400).json({menssagem: 'O orçamento não pode ser menor que o custo do projeto!'})
+            }
+
+            const projetoAtualizado = await knex('projetos')
+                .where({id})
+                .update({
+                    name: novoName ? novoName: name,
+                    budget: novoBudget ? novoBudget : budget,
+                    categories_id: novaCategoria ? novaCategoria : categoria_id
+
+                })
+        return res.status(200).json({menssagem: 'Projeto Atualizado'})
     } catch (error) {
         console.log(error)
         return res.status(500).json({menssagem: 'Erro interno do servidor'})
@@ -167,18 +262,121 @@ const adicionarServico = async (req,res)=>{
 
 const editarServico = async (req,res)=>{
     const id = Number(req.params.id)
-    const dados = req.body
+    const {name:novoName, description: novaDescricao} = req.body
+    const novoCost = Number(req.body.cost)
     try {
-        return res.status(200).json({
-            id,
-            dados
-        })
+        console.log('novoCost: ',novoCost)
+        if(isNaN(id)){
+            return res.status(400).json({menssagem: 'id inválido'})
+        }
+        const existeServico = await knex('servicos').where({id}).first()
+        const projeto = await knex('projetos')
+        .where({id: existeServico.projetos_id})
+        .first()
+        
+        const servicoAtualizado = await knex.transaction(async (trx) => {
+            // Obter informações do serviço existente
+            const servico = await trx('servicos').where({ id }).first()
+            
+
+        
+            if (!servico) {
+                // Lidar com o caso em que o serviço não existe
+                return res.status(400).json({menssagem: 'Servico não encontrado'})
+            }
+        
+            // Calcular a diferença no custo
+            const diferencaCusto = novoCost < servico.cost ? servico.cost - novoCost : novoCost;
+            
+           
+
+        
+            // Obter todos os serviços vinculados ao projeto
+            const servicosDiferentes = await trx('servicos')
+                .where('id', '!=', id)
+                .andWhere({ projetos_id: servico.projetos_id })
+            let soma = 0
+            for (const servico of servicosDiferentes) {
+                soma = soma + servico.cost
+            }
+            // Calcular o novo custo total do projeto
+            const novoCustoProjeto = soma + novoCost ;
+        
+            // Verificar se o novo custo total do projeto está dentro do orçamento
+            if (novoCustoProjeto <= projeto.budget) {
+                // Atualizar o custo do serviço
+                await trx('servicos').where({ id }).update({
+                    name: novoName ? novoName : servico.name,
+                    cost: novoCost ? novoCost : servico.cost,
+                    description: novaDescricao ? novaDescricao : servico.description
+                });
+        
+                // Atualizar o custo total do projeto
+                await trx('projetos')
+                    .where({ id: servico.projetos_id })
+                    .update({ cost: novoCustoProjeto });
+                
+                //atualizar o orçamento total
+                await trx('projetos')
+                    .where({ id: servico.projetos_id })
+                    .update({budget: projeto.budget - diferencaCusto})
+                // Commit da transação
+                await trx.commit();
+                
+                // Retornar o serviço atualizado
+                return {
+                    // ...servico,
+                    name: novoName ? novoName : servico.name,
+                    cost: novoCost ? novoCost : servico.cost,
+                    description: novaDescricao ? novaDescricao : servico.description
+                };
+            } else {
+                // Rollback da transação se o novo custo excede o orçamento
+                await trx.rollback();
+        
+                // Lidar com o caso em que o novo custo excede o orçamento
+                return res.status(400).json(`O valor do custo não pode ser maior que orçamento`)
+
+            }
+        });
+        
+        // novoCost ? novoCost : existeServico.cost
+        
+        // ==========================================
+
+        /*
+        const servicoAtualizado = await knex('servicos')
+            .where({id})
+            .update({
+                name: novoName ? novoName: existeServico.name,
+                cost: ()=>{
+                    
+                    if(novoCost){
+                        let soma = 0
+                        for (const servico of servicosDiferentes) {
+                            soma = soma + servico.cost
+                        }
+                        soma = soma + novoCost
+                        if(soma  < projeto.budget){
+                            const atualizarProjeto = await knex('projetos').update({cost: servicos.cost})
+                                   
+                        }
+                    }
+                    else{
+                        existeServico.cost
+                    }
+                },
+                description: novaDescricao ? novaDescricao : existeServico.description
+
+            })
+            */
+
+        return res.status(200).json({menssagem: 'Serviço editado'})
     } catch (error) {
         console.log(error)
         return res.status(500).json({menssagem: 'Erro interno do servidor'})
     }
 }
-
 const removerServico = async (req,res)=>{
     const id = Number(req.params.id)
     try {
@@ -220,5 +418,6 @@ module.exports = {
     removerProjeto,
     adicionarServico,
     removerServico,
+    editarProjeto,
     editarServico
 }

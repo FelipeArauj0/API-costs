@@ -163,13 +163,20 @@ const removerProjeto = async (req,res)=>{
 
 const adicionarServico = async (req,res)=>{
     const {name, description}= req.body
-    const cost= Number(req.body.cost)
+    let cost = req.body.cost
     const {id} = req.params
     try {
         if(isNaN(id)){
             return res.status(400).json({menssagem: 'id inválido'})
         }
 
+        if(cost){
+            if(isNaN(cost)){
+            return res.status(400).json({menssagem: 'Custo inválido, tente novamente'})
+            }
+        }
+        
+        cost = Number(cost)
         const existeProjeto = await knex('projetos').where({id}).first()
         
         if(!existeProjeto){
@@ -180,10 +187,7 @@ const adicionarServico = async (req,res)=>{
             .where({id})
             .select('budget', 'cost')
             .first()
-
-        console.log('budget atual: ', budgetAtual);
-        console.log('cost atual: ', costAtual);
-        
+ 
         if(cost > budgetAtual){
             return res.status(400).json({menssagem: 'Orçamento inválido, verifique o valor do serviço'})
         }
@@ -202,9 +206,9 @@ const adicionarServico = async (req,res)=>{
             
 
         await knex('projetos')
-            .update({budget: budgetAtual - cost, cost: costAtual + cost })
+            .update({cost: costAtual + cost })
             .where({id})
-            .debug()
+            
 
         return res.json({menssagem: 'Serviço adicionado'})
     } catch (error) {
@@ -216,7 +220,7 @@ const adicionarServico = async (req,res)=>{
 const editarProjeto = async (req,res)=>{
     const id = Number(req.params.id)
     const { name: novoName, categories_id: novaCategoria} = req.body
-    const novoBudget = Number(req.body.budget)
+    let novoBudget = req.body.budget
     try {
         if(isNaN(id)){
             return res.status(400).json({menssagem: 'id inválido'})
@@ -226,23 +230,46 @@ const editarProjeto = async (req,res)=>{
                 return res.status(400).json({menssagem: 'Orçamento inválido'})
             }
         }
+
+        novoBudget = Number(novoBudget)
         const existeProjeto = await knex('projetos').where({id}).first()
         
         if(!existeProjeto){
             return res.status(400).json({menssagem: 'Projeto não encontrado'})
         }
         const {
-            name, budget, cost, categoria_id
+            id_projeto ,name, budget, cost, categoria_id
             
         } = await knex('projetos')
             .join('categories', 'categories_id', '=', 'categories.id')
-            .select('projetos.id', 'projetos.name', 'projetos.budget', 'projetos.cost', 
+            .select('projetos.id as id_projeto', 'projetos.name', 'projetos.budget', 'projetos.cost', 
                 'categories.id as categoria_id', 'categories.name as categoria_name')
             .where('projetos.id', '=', id)
             .first()
             
             if(novoBudget < cost){
                 return res.status(400).json({menssagem: 'O orçamento não pode ser menor que o custo do projeto!'})
+            }
+
+            const servicos = await knex('servicos')
+                .where({projetos_id: id_projeto})
+            
+            if(servicos.length >= 1){
+                let somaCostServicos = 0
+                
+                for (let i = 0; i < servicos.length; i++) {
+                    somaCostServicos = somaCostServicos + servicos[i].cost
+                }
+
+                await knex('projetos')
+                    .where({id})
+                    .update({
+                        name: novoName ? novoName: name,
+                        budget: novoBudget ? novoBudget : budget,
+                        categories_id: novaCategoria ? novaCategoria : categoria_id
+
+                    })
+                return res.status(200).json({menssagem: 'Projeto Atualizado'})
             }
 
             const projetoAtualizado = await knex('projetos')
@@ -317,9 +344,9 @@ const editarServico = async (req,res)=>{
                     .update({ cost: novoCustoProjeto });
                 
                 //atualizar o orçamento total
-                await trx('projetos')
-                    .where({ id: servico.projetos_id })
-                    .update({budget: projeto.budget - diferencaCusto})
+                // await trx('projetos')
+                //     .where({ id: servico.projetos_id })
+                //     .update({budget: projeto.budget - diferencaCusto})
                 // Commit da transação
                 await trx.commit();
                 
@@ -340,36 +367,9 @@ const editarServico = async (req,res)=>{
             }
         });
         
-        // novoCost ? novoCost : existeServico.cost
         
-        // ==========================================
 
-        /*
-        const servicoAtualizado = await knex('servicos')
-            .where({id})
-            .update({
-                name: novoName ? novoName: existeServico.name,
-                cost: ()=>{
-                    
-                    if(novoCost){
-                        let soma = 0
-                        for (const servico of servicosDiferentes) {
-                            soma = soma + servico.cost
-                        }
-                        soma = soma + novoCost
-                        if(soma  < projeto.budget){
-                            const atualizarProjeto = await knex('projetos').update({cost: servicos.cost})
-                                   
-                        }
-                    }
-                    else{
-                        existeServico.cost
-                    }
-                },
-                description: novaDescricao ? novaDescricao : existeServico.description
-
-            })
-            */
+        // RESOLVER ERRO servicoAtualizado
 
         return res.status(200).json({menssagem: 'Serviço editado'})
     } catch (error) {

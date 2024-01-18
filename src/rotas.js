@@ -1,12 +1,19 @@
 const express = require('express')
 const { projetos, novoProjeto, removerProjeto, adicionarServico, removerServico, editarServico, editarProjeto } = require('./controladores/projetos')
 const categorias = require('./controladores/categorias')
-
+const { cadastrar, login } = require('./controladores/usuario')
+const validarLogin = require('./intermediarios/validarLogin')
 const rotas = express()
 
-rotas.get('/projetos', projetos)
+
 rotas.get('/categorias', categorias)
 
+rotas.post('/login', login)
+rotas.post('/cadastrar', cadastrar)
+
+rotas.use(validarLogin)
+
+rotas.get('/projetos', projetos)
 rotas.post('/projetos', novoProjeto)
 rotas.patch('/projetos/:id', editarProjeto)
 rotas.delete('/projetos/:id', removerProjeto)

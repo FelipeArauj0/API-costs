@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken')
 const cadastrar = async (req,res)=>{
     const {email, senha} = req.body
     
+    
     try {
         
         if(!email || !senha){

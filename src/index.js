@@ -5,11 +5,11 @@ const cors = require('cors');
 const corsOptions = require('./corsConfig');
 
 app.use(express.json())
+app.use(cors)
+app.options('*')
 app.use(rotas)
 
-app.use(cors)
 
-app.options('*')
 
 
 app.listen(process.env.PORT || 3000, ()=>{

@@ -5,8 +5,7 @@ const cors = require('cors');
 const corsOptions = require('./corsConfig');
 
 app.use(express.json())
-app.use(cors)
-app.options('*')
+app.use(cors())
 app.use(rotas)
 
 

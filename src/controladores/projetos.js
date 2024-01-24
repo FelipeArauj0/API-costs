@@ -74,7 +74,7 @@ const projetos = async (req,res)=>{
 
 const projeto = async (req,res)=>{
     const usuario_id = req.usuario.id
-    const id = req.params
+    const id = req.params.id
     try {
         if(isNaN(id)){
             return res.status(400).json({menssagem: 'id inválido'})

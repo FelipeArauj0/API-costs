@@ -310,7 +310,7 @@ const servico = async (req,res)=>{
         const existeServico = await knex('servicos').where({projetos_id: id})
         
         if(!existeServico || existeServico.length === 0){
-            return res.status(400).json({menssagem: 'Não tem serviço cadastrado.'})
+            return res.status(200).json({menssagem: 'Não tem serviço cadastrado.'})
         }
 
         return res.status(200).json(existeServico)

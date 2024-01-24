@@ -299,6 +299,27 @@ const adicionarServico = async (req,res)=>{
     }
 }
 
+const servico = async (req,res)=>{
+    const id = req.params.id
+    try {
+        if(id){
+            if(isNaN(id)){
+                return res.status(400).json({menssagem: 'Id inválido.'})
+            }
+        }
+        const existeServico = await knex('servicos').where({projetos_id: id})
+        
+        if(!existeServico || existeServico.length === 0){
+            return res.status(400).json({menssagem: 'Não tem serviço cadastrado.'})
+        }
+
+        return res.status(200).json(existeServico)
+        
+    } catch (error) {
+        console.log(error)
+    }
+}
+
 const editarServico = async (req,res)=>{
     const {id: usuario_id} = req.usuario
     const id = req.params.id
@@ -444,5 +465,6 @@ module.exports = {
     removerServico,
     editarProjeto,
     editarServico,
-    projeto
+    projeto,
+    servico
 }

@@ -81,9 +81,12 @@ const projeto = async (req,res)=>{
         }
 
         const existeProjeto = await knex('projetos').where({id}).andWhere({usuario_id})
+            .join('categories', 'categories_id', '=', 'categories.id')
         if(!existeProjeto){
             return res.status(404).json({menssagem: 'Projeto não encontrado'})
         }
+
+
 
         return res.status(200).json(existeProjeto)
 

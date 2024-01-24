@@ -74,21 +74,39 @@ const projetos = async (req,res)=>{
 
 const projeto = async (req,res)=>{
     const usuario_id = req.usuario.id
-    const id = req.params.id
+    const id = req.params.id;
+    
     try {
         if(isNaN(id)){
             return res.status(400).json({menssagem: 'id inválido'})
         }
 
-        const existeProjeto = await knex('projetos').where({id}).andWhere({usuario_id})
+        const projeto = await knex('projetos')
+            .where('projetos.id', '=', id)
+            .andWhere({usuario_id})
             .join('categories', 'categories_id', '=', 'categories.id')
-        if(!existeProjeto){
+            .select('projetos.id', 'projetos.name', 'projetos.budget', 
+            'projetos.cost', 'projetos.categories_id as id_categoria', 'projetos.usuario_id',
+            'categories.name as nome_categoria')
+            .first()
+            .orderBy('projetos.id')
+            
+        if(!projeto){
             return res.status(404).json({menssagem: 'Projeto não encontrado'})
         }
 
-
-
-        return res.status(200).json(existeProjeto)
+    
+        return res.status(200).json({
+            id: projeto.id, 
+            name: projeto.name, 
+            budget: projeto.budget, 
+            cost: projeto.cost,
+            categories: {
+                id_categoria: projeto.id_categoria,
+                nome_categoria: projeto.nome_categoria
+            },
+            usuario_id: projeto.usuario_id
+        })
 
     } catch (error) {
         console.log(error)

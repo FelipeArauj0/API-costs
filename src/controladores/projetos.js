@@ -89,7 +89,7 @@ const projeto = async (req,res)=>{
             'projetos.cost', 'projetos.categories_id as id_categoria', 'projetos.usuario_id',
             'categories.name as nome_categoria')
             .first()
-            .orderBy('projetos.id')
+            .orderBy('projetos.id');
             
         if(!projeto){
             return res.status(404).json({menssagem: 'Projeto não encontrado'})

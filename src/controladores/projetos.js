@@ -72,6 +72,27 @@ const projetos = async (req,res)=>{
     }
 }
 
+const projeto = async (req,res)=>{
+    const id = req.params
+    try {
+        if(isNaN(id)){
+            return res.status(400).json({menssagem: 'id inválido'})
+        }
+
+        const existeProjeto = await knex('projetos').where({id}).andWhere({usuario_id})
+        if(!existeProjeto){
+            return res.status(404).json({menssagem: 'Projeto não encontrado'})
+        }
+
+        return res.status(200).json(existeProjeto)
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({menssagem: 'Erro interno do servidor'})
+
+    }
+}
+
 const novoProjeto = async (req,res)=>{
     const {id: usuario_id} = req.usuario
     const {name, id_categoria} = req.body
@@ -421,5 +442,6 @@ module.exports = {
     adicionarServico,
     removerServico,
     editarProjeto,
-    editarServico
+    editarServico,
+    projeto
 }

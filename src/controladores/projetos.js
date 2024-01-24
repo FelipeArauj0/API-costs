@@ -73,6 +73,7 @@ const projetos = async (req,res)=>{
 }
 
 const projeto = async (req,res)=>{
+    const usuario_id = req.usuario.id
     const id = req.params
     try {
         if(isNaN(id)){

@@ -3,13 +3,15 @@ const { projetos, novoProjeto, removerProjeto, adicionarServico, removerServico,
 const categorias = require('./controladores/categorias')
 const { cadastrar, login } = require('./controladores/usuario')
 const validarLogin = require('./intermediarios/validarLogin')
+const validarBody = require('./validacoes/validarBody')
+const schemaUsuario = require('./schemas/schemaValidarUsuario')
 const rotas = express()
 
 
 rotas.get('/categorias', categorias)
 
 rotas.post('/login', login)
-rotas.post('/cadastrar', cadastrar)
+rotas.post('/cadastrar', validarBody(schemaUsuario),cadastrar)
 
 rotas.use(validarLogin)
 

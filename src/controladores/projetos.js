@@ -241,7 +241,7 @@ const editarProjeto = async (req,res)=>{
             .where('projetos.id', '=', id)
             .first()
             
-            if(novoBudget < cost){
+            if(novoBudget < Number(cost)){
                 return res.status(400).json({menssagem: 'O orçamento não pode ser menor que o custo do projeto!'})
             }
 
@@ -298,6 +298,10 @@ const adicionarServico = async (req,res)=>{
             return res.status(400).json({menssagem: 'Verifique o orçamento do projeto, custo ultrapassa o orçamento!'})
 
         }
+        console.log('Api: ',{name, 
+            cost, 
+            description,
+            projetos_id: id})
         const addServico = await knex('servicos')  
             .insert({
                 name, 

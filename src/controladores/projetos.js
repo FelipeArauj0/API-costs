@@ -264,7 +264,7 @@ const editarProjeto = async (req,res)=>{
 const adicionarServico = async (req,res)=>{
     const {id: usuario_id} = req.usuario
     const {name, description}= req.body
-    let cost = req.body.cost
+    let cost = req.body.budget
     const {id} = req.params
     try {
         if(isNaN(id)){

@@ -278,6 +278,7 @@ const adicionarServico = async (req,res)=>{
         }
         
         cost = Number(cost)
+        console.log(cost)
         const existeProjeto = await knex('projetos').where({id}).andWhere({usuario_id}).first()
         
         if(!existeProjeto || existeProjeto.length === 0){

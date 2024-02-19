@@ -227,7 +227,7 @@ const editarProjeto = async (req,res)=>{
 
         novoBudget = Number(novoBudget)
         const existeProjeto = await knex('projetos').where({id}).andWhere({usuario_id})
-        console.log(usuario_id)
+        // console.log(novoBudget)
         if(!existeProjeto || existeProjeto.length === 0){
             return res.status(400).json({menssagem: 'Projeto não encontrado'})
         }
@@ -241,9 +241,10 @@ const editarProjeto = async (req,res)=>{
             .where('projetos.id', '=', id)
             .first()
             
-            if(novoBudget < Number(cost)){
+            if(novoBudget < cost){
                 return res.status(400).json({menssagem: 'O orçamento não pode ser menor que o custo do projeto!'})
             }
+
 
             await knex('projetos')
                 .where({id})
@@ -264,7 +265,7 @@ const editarProjeto = async (req,res)=>{
 const adicionarServico = async (req,res)=>{
     const {id: usuario_id} = req.usuario
     const {name, description}= req.body
-    let cost = req.body.budget
+    let cost = req.body.cost
     const {id} = req.params
     try {
         if(isNaN(id)){
@@ -278,7 +279,7 @@ const adicionarServico = async (req,res)=>{
         }
         
         cost = Number(cost)
-        console.log(cost)
+        
         const existeProjeto = await knex('projetos').where({id}).andWhere({usuario_id}).first()
         
         if(!existeProjeto || existeProjeto.length === 0){
@@ -299,10 +300,10 @@ const adicionarServico = async (req,res)=>{
             return res.status(400).json({menssagem: 'Verifique o orçamento do projeto, custo ultrapassa o orçamento!'})
 
         }
-        console.log('Api: ',{name, 
-            cost, 
-            description,
-            projetos_id: id})
+        // console.log('Api: ',{name, 
+        //     cost, 
+        //     description,
+        //     projetos_id: id})
         const addServico = await knex('servicos')  
             .insert({
                 name, 

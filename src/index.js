@@ -16,3 +16,5 @@ if (process.env.NODE_ENV !== 'production') {
       console.log('Servidor rodando localmente');
     });
   }
+
+  module.exports = app

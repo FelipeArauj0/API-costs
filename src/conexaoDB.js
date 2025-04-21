@@ -6,7 +6,7 @@ const knex = require('knex')({
   ssl: { rejectUnauthorized: false }, // importante pro Neon
 })
 
-module.exports = knex
+// module.exports = knex
 // const knex = require('knex')({
 //     client: 'pg',
 //     connection: {
@@ -20,6 +20,6 @@ module.exports = knex
 
 
 
-  // module.exports = knex
+  module.exports = knex
 
   

@@ -1,5 +1,5 @@
 const corsOptions = {
-    origin: 'http://localhost:3000/',
+    origin: 'https://api-costs.vercel.app/',
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELEYE'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'autorizathion'],

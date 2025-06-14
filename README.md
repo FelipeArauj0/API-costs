@@ -31,5 +31,4 @@ API RESTful desenvolvida com **Node.js** e **Express** para gerenciamento de pro
 - **20% de funcionalidades**: foco em autenticação, CRUD completo e relação entre entidades.
 - **80% de aprendizado**: estruturação de APIs RESTful, segurança com JWT, organização de código com MVC, e boas práticas com Express e MongoDB.
 
-## 📂 Estrutura de Pastas
 
